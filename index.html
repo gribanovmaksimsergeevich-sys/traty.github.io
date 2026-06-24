@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Наши траты</title>
+    <title>Мой Финансовый Дашборд</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-main: #f4f5f6;
@@ -13,181 +14,204 @@
             --text-muted: #6c757d;
             --border-color: #e2e5e8;
             --primary: #4f46e5;
-            --primary-hover: #4338ca;
             --accent-gray: #e9ecef;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background-color: var(--bg-main); color: var(--text-main); padding: 24px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 1200px; }
-        header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+        header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
         header h1 { font-size: 24px; font-weight: 700; color: #1a1d20; }
         header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
-        
-        /* Кнопка синхронизации */
-        .sync-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
-        .sync-btn:hover { background: var(--primary-hover); }
-        .sync-btn svg { width: 16px; height: 16px; fill: currentColor; transition: transform 0.5s ease; }
-        .sync-btn.loading svg { animation: rotate 1s linear infinite; }
-        @keyframes rotate { 100% { transform: rotate(360deg); } }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; }
         .stat-card .title { font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; }
         .stat-card .value { font-size: 24px; font-weight: 700; margin-top: 8px; color: #1a1d20; }
         .stat-card.total-card { border-left: 5px solid var(--primary); }
         .main-layout { display: grid; grid-template-columns: 1fr 350px; gap: 24px; margin-bottom: 24px; }
         @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } }
         .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; }
-        .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #1a1d20; }
+        .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
         .filters { display: flex; flex-direction: column; gap: 12px; }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-        .filter-group select, .filter-group input { padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: #fafbfc; font-size: 14px; width: 100%; outline: none; }
-        .reset-btn { margin-top: 8px; padding: 10px; background: var(--accent-gray); border: none; border-radius: 8px; color: var(--text-main); font-weight: 500; cursor: pointer; }
-        .reset-btn:hover { background: #dee2e6; }
-        .table-card { overflow: hidden; }
+        .filter-group select, .filter-group input { padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; outline: none; }
+        .reset-btn { margin-top: 8px; padding: 10px; background: var(--accent-gray); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; }
         .table-wrapper { max-height: 500px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
         th { background: #fafbfc; padding: 12px 16px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
-        td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
-        tr:hover td { background-color: #fafbfc; }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
         .sum-cell { font-weight: 600; }
-        
-        .chart-container { display: flex; flex-direction: column; gap: 14px; width: 100%; }
-        .chart-row { width: 100%; }
-        .chart-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; font-weight: 500; }
-        .chart-bar-bg { width: 100%; height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; }
-        .chart-bar-fill { height: 100%; background: var(--primary); border-radius: 5px; transition: width 0.3s ease; }
+        #loading { font-weight: 600; color: var(--primary); margin-bottom: 15px; background: #e0e7ff; padding: 12px; border-radius: 8px; display: inline-block; }
     </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 <body>
+
 <div class="container">
     <header>
         <div>
             <h1>Мой Финансовый Учёт</h1>
             <p>Живой дашборд расходов из Google Таблицы</p>
         </div>
-
-    <div id="loading">Загрузка актуальных данных из таблицы...</div>
-    <div class="stats-grid">        <button id="sync-button" class="sync-btn" onclick="loadData()">
-            <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-            <span>Синхронизировать</span>
-        </button>
     </header>
+
+    <div id="loading">Синхронизация данных со скриптом...</div>
+
     <div class="stats-grid">
-        <div class="stat-card total-card"><div class="title">Всего отфильтровано</div><div class="value" id="total-sum">0 ₽</div></div>
-        <div class="stat-card"><div class="title">Личная еда (Я)</div><div class="value" id="food-sum">0 ₽</div></div>
-        <div class="stat-card"><div class="title">Всего на авто</div><div class="value" id="car-sum">0 ₽</div></div>
-        <div class="stat-card"><div class="title">Доставка еды</div><div class="value" id="delivery-sum">0 ₽</div></div>
+        <div class="stat-card total-card">
+            <div class="title">Всего отфильтровано</div>
+            <div class="value" id="total-sum">0 ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="title">Личная еда (Я)</div>
+            <div class="value" id="food-sum">0 ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="title">Всего на авто</div>
+            <div class="value" id="car-sum">0 ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="title">Доставка еды</div>
+            <div class="value" id="delivery-sum">0 ₽</div>
+        </div>
     </div>
+
     <div class="main-layout">
-        <div class="card">
+        <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <h2>Структура расходов по категориям</h2>
-            <div id="visual-chart" class="chart-container">
-                <p style="color: var(--text-muted); font-size: 14px;">Нет данных для отображения графиков</p>
+            <div style="width: 100%; max-width: 360px;">
+                <canvas id="expenseChart"></canvas>
             </div>
         </div>
+
         <div class="card">
-            <h2>Фильтрация</h2>
+            <h2>Фильтрация данных</h2>
             <div class="filters">
                 <div class="filter-group">
-                    <label>Месяц</label>
-                    <select id="monthFilter" onchange="applyFilters()">
-                        <option value="all">Все месяцы</option>
-                        <option value="01">Январь</option>
-                        <option value="02">Февраль</option>
-                        <option value="03">Март</option>
-                        <option value="04">Апрель</option>
-                        <option value="05">Май</option>
-                        <option value="06" selected>Июнь</option>
-                        <option value="07">Июль</option>
-                        <option value="08">Август</option>
-                        <option value="09">Сентябрь</option>
-                        <option value="10">Октябрь</option>
-                        <option value="11">Ноябрь</option>
-                        <option value="12">Декабрь</option>
+                    <label>Объект / Член семьи</label>
+                    <select id="objectFilter" onchange="applyFilters()">
+                        <option value="all">Все объекты</option>
                     </select>
                 </div>
-                <div class="filter-group"><label>Кто/Куда</label><select id="objectFilter" onchange="applyFilters()"><option value="all">Все объекты</option></select></div>
-                <div class="filter-group"><label>Категория</label><select id="categoryFilter" onchange="applyFilters()"><option value="all">Все категории</option></select></div>
-                <div class="filter-group"><label>День месяца</label><input type="number" id="dateFilter" min="1" max="31" placeholder="Например: 24" oninput="applyFilters()"></div>
-                <button class="reset-btn" onclick="resetFilters()">Сбросить</button>
+                <div class="filter-group">
+                    <label>Категория трат</label>
+                    <select id="categoryFilter" onchange="applyFilters()">
+                        <option value="all">Все категории</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>День месяца</label>
+                    <input type="number" id="dateFilter" min="1" max="31" placeholder="Например: 11" oninput="applyFilters()">
+                </div>
+                <button class="reset-btn" onclick="resetFilters()">Сбросить фильтры</button>
             </div>
         </div>
     </div>
-    <div class="card table-card">
+
+    <div class="card">
         <h2>Детализация расходов</h2>
         <div class="table-wrapper">
             <table>
-                <thead><tr><th>Дата</th><th>Объект</th><th>Категория</th><th>Описание</th><th>Сумма</th></tr></thead>
-                <tbody id="table-body"></tbody>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Объект</th>
+                        <th>Категория</th>
+                        <th>Описание</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+
+                </tbody>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-    //  ВСТАВЬ СЮДА ССЫЛКУ НА ВЕБ-ПРИЛОЖЕНИЕ (которую скопировал при публикации в Apps Script)
+    // Твоя проверенная рабочая ссылка на веб-приложение
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfRHkj7VC8WmQPhtaYs4Z7YCbpgDnV9ByC7x2Xr4DrNHwo35YZ1ZOKZnatKdVXbrnK/exec"; 
+    
     let expenses = [];
     let chart;
-    // Безопасная загрузка данных с твоего веб-приложения Google
-    // Безопасная загрузка данных с автоматическим следованием за редиректами Google
+
+    // Загрузка живых данных из Google Sheets
     async function loadData() {
         try {
-            // Добавили { redirect: 'follow' } чтобы браузер не спотыкался о сервера Google
-            const response = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' }); 
+            const response = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
             if (!response.ok) throw new Error('Ошибка сети');
+            
             expenses = await response.json(); 
-            document.getElementById('loading').style.display = 'none';
+            
+            if(document.getElementById('loading')) {
+                document.getElementById('loading').style.display = 'none';
+            }
+            
             initFilters();
             calculateStaticCards();
             applyFilters();
         } catch (error) {
-            document.getElementById('loading').innerText = " Ошибка загрузки данных. Проверьте обновление версии Apps Script!";
+            if(document.getElementById('loading')) {
+                document.getElementById('loading').innerText = "❌ Ошибка загрузки. Проверьте обновление версии Apps Script!";
+            }
             console.error(error);
         }
     }
-    // Автоматическое заполнение выпадающих списков фильтров уникальными значениями
+
+    // Заполнение выпадающих списков фильтров
     function initFilters() {
         const objects = new Set(); 
         const categories = new Set();
+        
         expenses.forEach(e => { 
             if (e.object) objects.add(e.object); 
             if (e.category) categories.add(e.category); 
         });
+        
         const objSel = document.getElementById('objectFilter');
-        objects.forEach(o => { 
-            let opt = document.createElement('option'); 
-            opt.value = o; opt.innerText = o; 
-            objSel.appendChild(opt); 
-        });
+        if (objSel) {
+            objects.forEach(o => { 
+                let opt = document.createElement('option'); 
+                opt.value = o; opt.innerText = o; 
+                objSel.appendChild(opt); 
+            });
+        }
+        
         const catSel = document.getElementById('categoryFilter');
-        categories.forEach(c => { 
-            let opt = document.createElement('option'); 
-            opt.value = c; opt.innerText = c; 
-            catSel.appendChild(opt); 
-        });
+        if (catSel) {
+            categories.forEach(c => { 
+                let opt = document.createElement('option'); 
+                opt.value = c; opt.innerText = c; 
+                catSel.appendChild(opt); 
+            });
+        }
     }
-    // Расчет сумм для верхних статических карточек (всегда по всей базе)
+
+    // Расчет сумм для верхних статических карточек
     function calculateStaticCards() {
-        let food = 0, car = 0, alcohol = 0;
+        let food = 0, car = 0, delivery = 0;
+        
         expenses.forEach(e => {
             if (e.category === "Я (Обеды / Перекусы)") food += e.amount;
             if (e.category === "Машина") car += e.amount;
-            if (e.category === "Алкоголь и закуски") alcohol += e.amount;
+            
+            const desc = (e.desc || "").toLowerCase();
+            if (desc.includes("доставка") || desc.includes("еда мак") || desc.includes("мак еда") || desc.includes("автосуши") || desc.includes("яндекс еда") || desc.includes("додо")) {
+                delivery += e.amount;
+            }
         });
-        document.getElementById('food-sum').innerText = food.toLocaleString() + ' ₽';
-        document.getElementById('car-sum').innerText = car.toLocaleString() + ' ₽';
-        document.getElementById('alcohol-sum').innerText = alcohol.toLocaleString() + ' ₽';
+
+        if(document.getElementById('food-sum')) document.getElementById('food-sum').innerText = food.toLocaleString() + ' ₽';
+        if(document.getElementById('car-sum')) document.getElementById('car-sum').innerText = car.toLocaleString() + ' ₽';
+        if(document.getElementById('delivery-sum')) document.getElementById('delivery-sum').innerText = delivery.toLocaleString() + ' ₽';
     }
-    // Фильтрация данных при изменении настроек пользователем
+
+    // Логика фильтрации
     function applyFilters() {
         const objVal = document.getElementById('objectFilter').value;
         const catVal = document.getElementById('categoryFilter').value;
         const dateVal = document.getElementById('dateFilter').value;
+
         const filtered = expenses.filter(e => {
             const mObj = (objVal === 'all' || e.object === objVal);
             const mCat = (catVal === 'all' || e.category === catVal);
@@ -197,66 +221,78 @@
             }
             return mObj && mCat && mDate;
         });
-        // Перерисовка таблицы расходов
+
         const tbody = document.getElementById('table-body');
-        tbody.innerHTML = '';
-        let total = 0;
-        filtered.forEach(e => {
-            total += e.amount;
-            tbody.innerHTML += `<tr>
-                <td>${e.date}</td>
-                <td>${e.object}</td>
-                <td>${e.category}</td>
-                <td>${e.desc}</td>
-                <td class="sum-cell">${e.amount.toLocaleString()} ₽</td>
-            </tr>`;
-        });
-        // Обновляем главную карточку "Отфильтровано"
-        document.getElementById('total-sum').innerText = total.toLocaleString() + ' ₽';
-        // Перестраиваем круговую диаграмму под новые отфильтрованные данные
+        if (tbody) {
+            tbody.innerHTML = '';
+            filtered.forEach(e => {
+                tbody.innerHTML += `<tr>
+                    <td>${e.date}</td>
+                    <td>${e.object}</td>
+                    <td>${e.category}</td>
+                    <td>${e.desc}</td>
+                    <td class="sum-cell">${e.amount.toLocaleString()} ₽</td>
+                </tr>`;
+            });
+        }
+
+        let total = filtered.reduce((sum, e) => sum + e.amount, 0);
+        if(document.getElementById('total-sum')) {
+            document.getElementById('total-sum').innerText = total.toLocaleString() + ' ₽';
+        }
+        
         updateChart(filtered);
     }
-    // Обновление интерактивной диаграммы
-Chart.js
+
+    // Безопасное обновление диаграммы Chart.js
     function updateChart(data) {
-        const totals = {};
-        data.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.amount; });
-        if (chart) chart.destroy();
-        chart = new Chart(document.getElementById('expenseChart').getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(totals),
-                datasets: [{ 
-                    data: Object.values(totals), 
-                    backgroundColor: [
-                        '#4f46e5', '#10b981', '#f59e0b', '#ef4444', 
-                        '#8b5cf6', '#ec4899', '#3b82f6', '#6b7280',
-                        '#14b8a6', '#f43f5e', '#a855f7', '#64748b'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: { 
-                responsive: true, 
-                plugins: { 
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { boxWidth: 10, font: { size: 10 } } 
+        try {
+            const totals = {};
+            data.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.amount; });
+            
+            if (typeof Chart === 'undefined') return;
+
+            if (chart) chart.destroy();
+            chart = new Chart(document.getElementById('expenseChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(totals),
+                    datasets: [{ 
+                        data: Object.values(totals), 
+                        backgroundColor: [
+                            '#4f46e5', '#10b981', '#f59e0b', '#ef4444', 
+                            '#8b5cf6', '#ec4899', '#3b82f6', '#6b7280',
+                            '#14b8a6', '#f43f5e', '#a855f7', '#64748b'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { boxWidth: 10, font: { size: 10 } } 
+                        } 
                     } 
-                } 
-            }
-        });
+                }
+            });
+        } catch (err) {
+            console.error("Ошибка графика:", err);
+        }
     }
-    // Сброс всех выбранных фильтров
+
     function resetFilters() {
         document.getElementById('objectFilter').value = 'all';
         document.getElementById('categoryFilter').value = 'all';
         document.getElementById('dateFilter').value = '';
         applyFilters();
     }
-    // Старт загрузки при открытии страницы
+
+    // Старт
     loadData();
 </script>
 </body>
 </html>
+
