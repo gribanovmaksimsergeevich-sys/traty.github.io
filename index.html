@@ -125,186 +125,134 @@
 </div>
 
 <script>
-    const DATA_URL = "https://script.google.com/macros/s/AKfycbwKRl7t4Bp0_Z4n3r9Uu8lEYQRnhcCrbg0hKMX-Qdn4DeRlE61N7pCIrXa_pAWNm8BcSA/exec";
-
+    //  ВСТАВЬ СЮДА ССЫЛКУ НА ВЕБ-ПРИЛОЖЕНИЕ (которую скопировал при публикации в Apps Script)
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKRl7t4Bp0_Z4n3r9Uu8lEYQRnhcCrbg0hKMX-Qdn4DeRlE61N7pCIrXa_pAWNm8BcSA/exec"; 
     let expenses = [];
-
+    let chart;
+    // Безопасная загрузка данных с твоего веб-приложения Google
     async function loadData() {
-        const btn = document.getElementById('sync-button');
-        const statusText = document.getElementById('status-text');
-        
         try {
-            btn.classList.add('loading');
-            statusText.innerText = "Обновление данных...";
-            statusText.style.color = "var(--text-main)";
-            
-            const response = await fetch(DATA_URL);
-            if (!response.ok) throw new Error("Ошибка шлюза");
-            const rawData = await response.text();
-            
-            try {
-                expenses = JSON.parse(rawData);
-            } catch(e) {
-                throw new Error("Скрипт прислал текст вместо JSON.");
-            }
-            
-            if (expenses.error) throw new Error(expenses.error);
-            
-            statusText.innerText = `Живые данные успешно синхронизированы (${expenses.length} записей)`;
-            initFilterOptions();
+            const response = await fetch(APPS_SCRIPT_URL);
+            if (!response.ok) throw new Error('Ошибка сети');
+            // Скрипт из таблицы сразу отдаёт готовый массив объектов
+            expenses = await response.json(); 
+            // Прячем надпись "Загрузка..."
+            document.getElementById('loading').style.display = 'none';
+            initFilters();
+            calculateStaticCards();
             applyFilters();
         } catch (error) {
+            document.getElementById('loading').innerText = " Ошибка загрузки данных со скрипта. Проверьте публикацию Apps Script и доступ к таблице!";
             console.error(error);
-            statusText.innerText = `🚨 Ошибка: ${error.message}`;
-            statusText.style.color = "#ef4444";
-        } finally {
-            btn.classList.remove('loading');
         }
     }
-
-    function initFilterOptions() {
-        const currentObjVal = document.getElementById('objectFilter').value;
-        const currentCatVal = document.getElementById('categoryFilter').value;
-
-        const objects = new Set();
+    // Автоматическое заполнение выпадающих списков фильтров уникальными значениями
+    function initFilters() {
+        const objects = new Set(); 
         const categories = new Set();
-        expenses.forEach(e => {
-            if(e && e.object) objects.add(e.object);
-            if(e && e.category) categories.add(e.category);
+        expenses.forEach(e => { 
+            if (e.object) objects.add(e.object); 
+            if (e.category) categories.add(e.category); 
         });
-
-        const objSelect = document.getElementById('objectFilter');
-        objSelect.innerHTML = '<option value="all">Все объекты</option>';
-        objects.forEach(obj => {
-            let opt = document.createElement('option');
-            opt.value = obj; opt.innerText = obj;
-            objSelect.appendChild(opt);
+        const objSel = document.getElementById('objectFilter');
+        objects.forEach(o => { 
+            let opt = document.createElement('option'); 
+            opt.value = o; opt.innerText = o; 
+            objSel.appendChild(opt); 
         });
-        if (objects.has(currentObjVal)) objSelect.value = currentObjVal;
-
-        const catSelect = document.getElementById('categoryFilter');
-        catSelect.innerHTML = '<option value="all">Все категории</option>';
-        categories.forEach(cat => {
-            let opt = document.createElement('option');
-            opt.value = cat; opt.innerText = cat;
-            catSelect.appendChild(opt);
+        const catSel = document.getElementById('categoryFilter');
+        categories.forEach(c => { 
+            let opt = document.createElement('option'); 
+            opt.value = c; opt.innerText = c; 
+            catSel.appendChild(opt); 
         });
-        if (categories.has(currentCatVal)) catSelect.value = currentCatVal;
     }
-
+    // Расчет сумм для верхних статических карточек (всегда по всей базе)
+    function calculateStaticCards() {
+        let food = 0, car = 0, alcohol = 0;
+        expenses.forEach(e => {
+            if (e.category === "Я (Обеды / Перекусы)") food += e.amount;
+            if (e.category === "Машина") car += e.amount;
+            if (e.category === "Алкоголь и закуски") alcohol += e.amount;
+        });
+        document.getElementById('food-sum').innerText = food.toLocaleString() + ' ₽';
+        document.getElementById('car-sum').innerText = car.toLocaleString() + ' ₽';
+        document.getElementById('alcohol-sum').innerText = alcohol.toLocaleString() + ' ₽';
+    }
+    // Фильтрация данных при изменении настроек пользователем
     function applyFilters() {
-        if (!expenses || !Array.isArray(expenses)) return;
-
-        const monthVal = document.getElementById('monthFilter').value;
         const objVal = document.getElementById('objectFilter').value;
         const catVal = document.getElementById('categoryFilter').value;
         const dateVal = document.getElementById('dateFilter').value;
-
         const filtered = expenses.filter(e => {
-            if (!e || !e.date) return false;
-            
-            // Фильтр по месяцу (дата имеет формат "ДД.ММ")
-            const dateParts = e.date.split('.');
-            const rowMonth = dateParts[1];
-            const matchMonth = (monthVal === 'all' || rowMonth === monthVal);
-
-            const matchObj = (objVal === 'all' || e.object === objVal);
-            const matchCat = (catVal === 'all' || e.category === catVal);
-            
-            let matchDate = true;
-            if(dateVal) {
-                const formattedDay = dateVal.padStart(2, '0');
-                matchDate = dateParts[0] === formattedDay;
+            const mObj = (objVal === 'all' || e.object === objVal);
+            const mCat = (catVal === 'all' || e.category === catVal);
+            let mDate = true;
+            if(dateVal) { 
+                mDate = e.date.startsWith(dateVal.padStart(2, '0')); 
             }
-            
-            return matchMonth && matchObj && matchCat && matchDate;
+            return mObj && mCat && mDate;
         });
-
+        // Перерисовка таблицы расходов
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
-        let currentTotal = 0;
-
+        let total = 0;
         filtered.forEach(e => {
-            const amount = parseFloat(e.amount) || 0;
-            currentTotal += amount;
-            tbody.innerHTML += `<tr>
-                <td>${e.date || ''}</td>
-                <td>${e.object || ''}</td>
-                <td>${e.category || ''}</td>
-                <td>${e.desc || ''}</td>
-                <td class="sum-cell">${amount.toLocaleString()} ₽</td>
-            </tr>`;
+            total += e.amount;
+            tbody.innerHTML += <tr>
+                <td>${e.date}</td>
+                <td>${e.object}</td>
+                <td>${e.category}</td>
+                <td>${e.desc}</td>
+                <td class="sum-cell">${e.amount.toLocaleString()} ₽</td>
+            </tr>;
         });
-
-        document.getElementById('total-sum').innerText = currentTotal.toLocaleString() + ' ₽';
-        
-        let foodSum = 0, carSum = 0, deliverySum = 0;
-        expenses.forEach(e => {
-            if (!e) return;
-            const amount = parseFloat(e.amount) || 0;
-            if (e.category === "Я (Обеды / Перекусы)") foodSum += amount;
-            if (e.category === "Машина") carSum += amount;
-            
-            const descLower = e.desc ? e.desc.toLowerCase() : '';
-            if (descLower.includes("доставка") || descLower.includes("додо") || descLower.includes("яндекс еда") || descLower.includes("самокат")) {
-                deliverySum += amount;
+        // Обновляем главную карточку "Отфильтровано"
+        document.getElementById('total-sum').innerText = total.toLocaleString() + ' ₽';
+        // Перестраиваем круговую диаграмму под новые отфильтрованные данные
+        updateChart(filtered);
+    }
+    // Обновление интерактивной диаграммы
+Chart.js
+    function updateChart(data) {
+        const totals = {};
+        data.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.amount; });
+        if (chart) chart.destroy();
+        chart = new Chart(document.getElementById('expenseChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(totals),
+                datasets: [{ 
+                    data: Object.values(totals), 
+                    backgroundColor: [
+                        '#4f46e5', '#10b981', '#f59e0b', '#ef4444', 
+                        '#8b5cf6', '#ec4899', '#3b82f6', '#6b7280',
+                        '#14b8a6', '#f43f5e', '#a855f7', '#64748b'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: { 
+                responsive: true, 
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { boxWidth: 10, font: { size: 10 } } 
+                    } 
+                } 
             }
         });
-        
-        document.getElementById('food-sum').innerText = foodSum.toLocaleString() + ' ₽';
-        document.getElementById('car-sum').innerText = carSum.toLocaleString() + ' ₽';
-        document.getElementById('delivery-sum').innerText = deliverySum.toLocaleString() + ' ₽';
-
-        renderVisualChart(filtered, currentTotal);
     }
-
-    function renderVisualChart(data, totalSum) {
-        const chartBox = document.getElementById('visual-chart');
-        chartBox.innerHTML = '';
-
-        if (data.length === 0 || totalSum === 0) {
-            chartBox.innerHTML = '<p style="color: var(--text-muted); font-size: 14px;">Нет данных для графиков</p>';
-            return;
-        }
-
-        const catTotals = {};
-        data.forEach(e => {
-            if(e && e.category) {
-                catTotals[e.category] = (catTotals[e.category] || 0) + (parseFloat(e.amount) || 0);
-            }
-        });
-
-        const sortedCategories = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]);
-        const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6', '#14b8a6', '#64748b'];
-
-        sortedCategories.forEach((cat, index) => {
-            const sum = catTotals[cat];
-            const percentage = Math.round((sum / totalSum) * 100);
-            const barColor = colors[index % colors.length];
-
-            chartBox.innerHTML += `
-                <div class="chart-row">
-                    <div class="chart-info">
-                        <span>${cat} (${percentage}%)</span>
-                        <span style="color: #1a1d20;">${sum.toLocaleString()} ₽</span>
-                    </div>
-                    <div class="chart-bar-bg">
-                        <div class="chart-bar-fill" style="width: ${percentage}%; background-color: ${barColor};"></div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
+    // Сброс всех выбранных фильтров
     function resetFilters() {
-        document.getElementById('monthFilter').value = '06'; // Сброс на текущий Июнь по умолчанию
         document.getElementById('objectFilter').value = 'all';
         document.getElementById('categoryFilter').value = 'all';
         document.getElementById('dateFilter').value = '';
         applyFilters();
     }
-
-    window.onload = loadData;
+    // Старт загрузки при открытии страницы
+    loadData();
 </script>
 </body>
 </html>
