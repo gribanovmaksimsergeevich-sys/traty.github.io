@@ -199,13 +199,13 @@
         let total = 0;
         filtered.forEach(e => {
             total += e.amount;
-            tbody.innerHTML += <tr>
+            tbody.innerHTML += `<tr>
                 <td>${e.date}</td>
                 <td>${e.object}</td>
                 <td>${e.category}</td>
                 <td>${e.desc}</td>
                 <td class="sum-cell">${e.amount.toLocaleString()} ₽</td>
-            </tr>;
+            </tr>`;
         });
         // Обновляем главную карточку "Отфильтровано"
         document.getElementById('total-sum').innerText = total.toLocaleString() + ' ₽';
