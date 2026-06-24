@@ -130,19 +130,19 @@
     let expenses = [];
     let chart;
     // Безопасная загрузка данных с твоего веб-приложения Google
+    // Безопасная загрузка данных с автоматическим следованием за редиректами Google
     async function loadData() {
         try {
-            const response = await fetch(APPS_SCRIPT_URL);
+            // Добавили { redirect: 'follow' } чтобы браузер не спотыкался о сервера Google
+            const response = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' }); 
             if (!response.ok) throw new Error('Ошибка сети');
-            // Скрипт из таблицы сразу отдаёт готовый массив объектов
             expenses = await response.json(); 
-            // Прячем надпись "Загрузка..."
             document.getElementById('loading').style.display = 'none';
             initFilters();
             calculateStaticCards();
             applyFilters();
         } catch (error) {
-            document.getElementById('loading').innerText = " Ошибка загрузки данных со скрипта. Проверьте публикацию Apps Script и доступ к таблице!";
+            document.getElementById('loading').innerText = " Ошибка загрузки данных. Проверьте обновление версии Apps Script!";
             console.error(error);
         }
     }
