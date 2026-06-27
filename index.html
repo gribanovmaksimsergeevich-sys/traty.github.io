@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script>
+<link rel="manifest" href="manifest.json?v=2">
+    
+    <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js', { scope: './' })
+                // Добавляем версию к sw.js, чтобы сбросить кэш телефона
+                navigator.serviceWorker.register('sw.js?v=2', { scope: './' })
                     .then(reg => {
-                        console.log('Service Worker зарегистрирован!', reg);
-                        // Принудительно обновляем воркер, если код изменился
+                        console.log('Woker OK');
                         reg.update();
-                    })
-                    .catch(err => console.log('Ошибка PWA:', err));
+                    });
             });
         }
     </script>
