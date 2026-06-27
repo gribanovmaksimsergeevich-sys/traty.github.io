@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://img.icons8.com/fluid/192/money-bag.png",
+      "src": "my-icon.png",
       "type": "image/png",
       "sizes": "192x192"
     },
