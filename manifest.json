@@ -1,6 +1,6 @@
 {
-  "name": "Финансовая Аналитика PRO",
-  "short_name": "ФинАналитика",
+  "name": "Финансовый Хаб PRO",
+  "short_name": "ФинХаб",
   "description": "Система контроля семейного бюджета",
   "start_url": "./index.html",
   "scope": "./",
