@@ -1,7 +1,10 @@
-const CACHE_NAME = 'finhub-v2';
+const CACHE_NAME = 'finhub-v3';
+const ASSETS = ['./index.html', './manifest.json'];
 
-// Минимальный дефолтный список для прохождения валидации Android
 self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  );
   self.skipWaiting();
 });
 
@@ -9,7 +12,8 @@ self.addEventListener('activate', event => {
   event.waitUntil(self.clients.claim());
 });
 
-// Просто пропускаем все запросы напрямую в сеть, чтобы ничего не висло при обновлениях
 self.addEventListener('fetch', event => {
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
 });
