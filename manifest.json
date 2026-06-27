@@ -1,0 +1,23 @@
+{
+  "nav_type": "none",
+  "name": "Финансовый Хаб",
+  "short_name": "ФинХаб",
+  "description": "Умный учет семейного бюджета",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1a1c1e",
+  "theme_color": "#006c4c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluid/192/money-bag.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/fluid/512/money-bag.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
