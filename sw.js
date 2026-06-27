@@ -1,38 +1,15 @@
-const CACHE_NAME = 'finhub-v1';
-const ASSETS = [
-  'index.html',
-  'manifest.json'
-];
+const CACHE_NAME = 'finhub-v2';
 
-// Установка воркера и кэширование основы
+// Минимальный дефолтный список для прохождения валидации Android
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS);
-    })
-  );
+  self.skipWaiting();
 });
 
-// Активация и удаление старого кэша
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
-  );
+  event.waitUntil(self.clients.claim());
 });
 
-// Сетевые запросы: сначала сеть, если сбой — берем из кэша
+// Просто пропускаем все запросы напрямую в сеть, чтобы ничего не висло при обновлениях
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    })
-  );
+  event.respondWith(fetch(event.request));
 });
